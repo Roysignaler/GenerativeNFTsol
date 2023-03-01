@@ -1,0 +1,93 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.9;
+
+// Import OpenZeppelin contracts for ERC721 token
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
+
+// Define RhNFT contract inheriting from OpenZeppelin contracts for ERC721 token and others
+contract GenerativeNFT is
+    ERC721,
+    ERC721Enumerable,
+    ERC721URIStorage,
+    ERC721Burnable,
+    Ownable
+{
+    // Use Counters library from OpenZeppelin for tracking token IDs
+    using Counters for Counters.Counter;
+    Counters.Counter private _tokenIdCounter;
+
+    // Define maximum supply and minting price constants
+    uint256 public constant MAX_SUPPLY = 25;
+    uint256 public constant MINT_PRICE = 0.001 ether;
+
+    // Constructor function for RhNFT contract
+    constructor() ERC721("GenerativeNFT", "GNR") {
+        // Initialize the tokenIdCounter to start 1
+        _tokenIdCounter.increment();
+    }
+
+    // Override the _baseURI function from ERC721URIStorage to return an empty string
+    function _baseURI() internal pure override returns (string memory) {
+        return "";
+    }
+
+    // Define the function for minting tokens, only callable with payment
+    function safeMint(address to, string memory uri) public payable {
+        // Check that the amount of Ether sent is greater than or equal to the minting price
+        require(
+            msg.value >= MINT_PRICE,
+            "Transaction value did not equal the mint price!"
+        );
+        // Check that the total supply of tokens is less than the maximum supply
+        require(totalSupply() < MAX_SUPPLY, "Max supply reached");
+
+        // Get the next token ID to use and increment the counter
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
+
+        // Mint the token to the specified address and set its URI
+        _safeMint(to, tokenId);
+        _setTokenURI(tokenId, uri);
+    }
+
+    // Define a function for the owner to withdraw payments received by the contract
+    function withdrawPayments() public onlyOwner {
+        payable(owner()).transfer(address(this).balance);
+    }
+
+    // Override the _beforeTokenTransfer function from ERC721 and ERC721Enumerable to call the parent implementation
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 batchSize
+    ) internal override(ERC721, ERC721Enumerable) {
+        super._beforeTokenTransfer(from, to, tokenId, batchSize);
+    }
+
+    // Override the _burn function from ERC721 and ERC721URIStorage to call the parent implementation
+    function _burn(
+        uint256 tokenId
+    ) internal override(ERC721, ERC721URIStorage) {
+        super._burn(tokenId);
+    }
+
+    // Override the tokenURI function from ERC721URIStorage to call the parent implementation
+    function tokenURI(
+        uint256 tokenId
+    ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
+        return super.tokenURI(tokenId);
+    }
+
+    // Override the supportsInterface function from ERC721Enumerable to call the parent implementation
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC721, ERC721Enumerable) returns (bool) {
+        return super.supportsInterface(interfaceId);
+    }
+}
